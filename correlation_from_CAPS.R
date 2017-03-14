@@ -10,12 +10,12 @@ library(RColorBrewer) # <-- for the customised colour palette which I want to us
 library(gplots) # <-- if you want customised heatmaps, use heatmap.2 from the gplots package.
 
 # Parameters:
-portfolio_code = 'PCGLUF'
+portfolio_code = 'Hirose + peers'
 frequency = "Weekly"
 currency = "Local"
 old_way = TRUE # referring to the ordering of the columns/rows.  If true, let hierarchical clustering automatically group by euclidian distance.
-min_date = as.Date("2012-01-13") # as.Date("2015-09-29") # 
-max_date = as.Date("2017-01-13")
+min_date = as.Date("2014-02-16") # as.Date("2015-09-29") # 
+max_date = as.Date("2017-02-16")
 
 
 ### STEP 1: GET A LIST OF sec_id's (this is the part which will change every time)
@@ -23,8 +23,9 @@ sql_sec_id = paste("select pos.sec_id from t_Ref_Positions_L pos inner join t_Re
                    portfolio_code,
                    "' and pos.sec_id is not null",
                    sep = "")
+sql_sec_id = "SELECT sec_ticker as ticker, sec_id FROM PCI_CORE.dbo.t_Ref_Sec WHERE sec_ticker IN ('NIK225.JP', 'TEL.US', 'APH.US', '7203.JP', '6954.JP', '6806.JP')"
 secIdList <- get_table_from_sql_CISMPRDSVR(sql_sec_id)$sec_id
-secIdList <- c(secIdList, 123456) # For fun, let's add the secId of the stock we're thinking of buying
+#secIdList <- c(secIdList, 123456) # For fun, let's add the secId of the stock we're thinking of buying
 
 
 ### STEP 2: GET RETURN DATA FROM THE DATABASE AT THE DESIRED FREQUENCY
@@ -84,7 +85,6 @@ if (old_way) {
     }
 }
 
-
 ### STEP 3:  Compute correlations and show the heat map
 
 # Drop all columns where there is only data for less than 50% of the data 
@@ -93,6 +93,19 @@ raw_returns = raw_returns[, colSums(is.na(raw_returns)) < length(raw_returns[, 1
 
 # Drop T-1 row (remember that SQL's get_performance_chart always tacks on a T-1 data point which may not reflect a full period)
 raw_returns = raw_returns[1:(length(raw_returns[, 1]) - 1),]
+
+### STEP 2.5 (optional):  Add a currency
+raw_returns$Date = as_date(raw_returns$Date)
+fx_df = get_table_from_sql_CISMPRDSVR("SELECT fx_date AS [date], fx_value AS 'USDJPY' FROM dbo.t_Data_FX WHERE fx_code = 'USDJPY'")
+fx_df$date = as_date(fx_df$date)
+fx_xts = xts(fx_df[,2], order.by = fx_df[,1])
+fx_return_xts = periodReturn(fx_xts, period = tolower(frequency))
+fx_return_df = setNames(data.frame(date = as_date(index(fx_return_xts)), thing = fx_return_xts[, 1]), c("date", "USDJPY"))
+fx_return_df = dplyr::filter(fx_return_df, date %in% raw_returns$Date)
+raw_returns_with_fx = merge(raw_returns, fx_return_df, by.x = "Date", by.y = "date")
+
+raw_returns = raw_returns_with_fx
+
 
 # Compute the correlations and show the heatmap
 correlation_matrix = cor(raw_returns[, 2:length(raw_returns)], use = "pairwise.complete.obs")
@@ -157,8 +170,8 @@ heatmap.2(
   , col = my_palette # use our color palette defined earlier
   #,breaks=col_breaks     # enable color transition at specified limits # <-- this was an optional thing in the article... Ignoring for now
   , dendrogram = "none" # the dendogram is the flow chart showing closeness of the rows/columns as measured by hiearchical clustering.  Can be "row", "column", "both" or "none"
-  , Colv = old_way # turn off column clustering
-  , Rowv = old_way # turn off row clustering
+  , Colv = FALSE # turn off column clustering
+  , Rowv = FALSE # turn off row clustering
   , key = FALSE # the key is the colour
   , lmat = rbind(4:3, 2:1) # the layout of the dendograms (2 & 3), key (4) and actual heatmap (1).
   , lhei = c(0.95, 4) # the height of the layout parts.  This is the smallest I seem to be able to get the non-heatmap part if there's a title in it
@@ -179,8 +192,8 @@ heatmap.2(
   , col = my_palette # use our color palette defined earlier
   #,breaks=col_breaks     # enable color transition at specified limits # <-- this was an optional thing in the article... Ignoring for now
   , dendrogram = "none" # the dendogram is the flow chart showing closeness of the rows/columns as measured by hiearchical clustering.  Can be "row", "column", "both" or "none"
-  , Colv = old_way # turn off column clustering
-  , Rowv = old_way # turn off row clustering
+  , Colv = FALSE # turn off column clustering
+  , Rowv = FALSE # turn off row clustering
   , key = FALSE # the key is the colour
   #,lmat=rbind(4:3,2:1)   # the layout of the dendograms (2 & 3), key (4) and actual heatmap (1).
   , lhei = c(0.95, 4) # the height of the layout parts.  This is the smallest I seem to be able to get the non-heatmap part if there's a title in it

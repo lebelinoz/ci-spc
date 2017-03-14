@@ -2,7 +2,7 @@
 ## Exercises for ggplot2 book ##
 ################################
 
-library(ggplot2)
+library(tidyverse)
 data(mpg)
 data(diamonds)
 data(economics)
@@ -73,4 +73,46 @@ x = x + geom_text(aes(x =  start, y = 2500, label = name), data = presidential, 
 x = x + geom_line(aes(date, unemploy))
 x = x + scale_fill_manual(values = c("blue", "red"))
 x
-    
+
+## "R for Data Science" Chapter 1
+# Facets (p. 15)
+x = ggplot(data = mpg) + geom_point(mapping = aes(x = displ, y = hwy))
+x + facet_wrap(~class, nrow = 2)
+x + facet_grid(drv ~ cyl)
+ggplot(data = mpg) + geom_point(mapping = aes(x = year, y = hwy)) + facet_wrap(~displ)
+x + facet_grid(. ~ cyl)
+x + facet_wrap(~ cyl)
+x + facet_grid(drv ~ cyl)
+x + facet_grid(drv ~ .)
+x + facet_grid(. ~ cyl)
+
+
+# Geoms (p. 16)
+ggplot(data = mpg) + geom_smooth(mapping = aes(x = displ, y = hwy))
+ggplot(data = mpg) +  geom_smooth(mapping = aes(x = displ, y = hwy, linetype = drv))
+ggplot(data = mpg) +  geom_smooth(mapping = aes(x = displ, y = hwy, linetype = drv, color = drv)) + geom_point(mapping = aes(x = displ, y = hwy, color = drv))
+
+ggplot(data = mpg) +  geom_smooth(mapping = aes(x = displ, y = hwy))
+ggplot(data = mpg) +  geom_smooth(mapping = aes(x = displ, y = hwy, group = drv))
+ggplot(data = mpg) +  geom_smooth(mapping = aes(x = displ, y = hwy, color = drv), show.legend = FALSE)
+ggplot(data = mpg) +  geom_smooth(mapping = aes(x = displ, y = hwy, color = drv))
+
+
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) +  geom_smooth() + geom_point()
+x = ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) +  geom_smooth(data = filter(mpg, class == "subcompact"), se = FALSE) + geom_point(aes(color=class))
+x + geom_smooth(data = filter(mpg, class == "suv"), se = FALSE, color = "red")
+
+# Exercise 6 on p. 21:  recreate these six graphs
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + geom_point() + geom_smooth(se=FALSE)
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + geom_point() + geom_smooth(aes(group=drv), se=FALSE)
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy, color = drv)) + geom_point() + geom_smooth(se=FALSE)
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + geom_point(aes(color = drv)) + geom_smooth(se=FALSE)
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + geom_point(aes(color = drv)) + geom_smooth(aes(linetype = drv), se=FALSE)
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + geom_point(aes(color = drv)) 
+
+# Statistical Transformations (p. 22)
+data(diamonds)
+ggplot(data = diamonds) + geom_bar(mapping = aes(x = cut))
+ggplot(data = diamonds) + geom_bar(mapping = aes(x = cut, y = ..prop.., group = 1))
+
+ggplot(data = diamonds) + stat_summary(mapping = aes(x = cut, y = depth), fun.ymin = min, fun.ymax = max, fun.y = median)
